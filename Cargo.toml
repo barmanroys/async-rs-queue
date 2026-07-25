@@ -1,0 +1,8 @@
+[package]
+name = "async-rs-queue"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+redis = { version = "1.4.1", features = ["tokio-comp", "connection-manager"] }
+tokio = { version = "1.53.1", features = ["rt", "rt-multi-thread", "macros"] }

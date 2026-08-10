@@ -6,5 +6,5 @@ edition = "2024"
 [dependencies]
 env_logger = "0.11.11"
 log = "0.4.33"
-redis = { version = "1.4.1", features = ["tokio-comp", "connection-manager"] }
+redis = { version = "1.5.0", features = ["tokio-comp", "connection-manager"] }
 tokio = { version = "1.53.1", features = ["rt", "rt-multi-thread", "macros"] }

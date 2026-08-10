@@ -1,6 +1,6 @@
 use log::info;
+use redis::Client;
 use redis::aio::MultiplexedConnection;
-use redis::{AsyncTypedCommands, Client};
 use std::env;
 use std::time::Duration;
 #[tokio::main]
@@ -20,10 +20,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         info!("Waiting for next task on queue {queue_name}");
         // brpop can come from multiple traits, so the need to disambiguate
-        let tasks: [String; 2] = AsyncTypedCommands::brpop(&mut conn, queue_name, 0.0)
-            .await?
-            .unwrap();
-        for task in tasks {
+        let results: Option<(String, Vec<u8>)> =
+            redis::AsyncCommands::brpop(&mut conn, queue_name, 0.0).await?;
+        let tasks: (String, Vec<u8>) = results.unwrap();
+        info!("Item found in Queue {}", tasks.0);
+        for task in tasks.1 {
             info!("Task found in redis: {}", task);
         }
     }

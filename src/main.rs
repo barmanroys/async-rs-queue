@@ -1,3 +1,5 @@
+mod consumer_broker;
+
 use log::info;
 use redis::Client;
 use redis::aio::MultiplexedConnection;

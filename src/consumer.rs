@@ -17,14 +17,10 @@ async fn multiply(a: i64, b: i64) -> i64 {
 }
 
 pub struct Orchestrator<T: BrokerInterface> {
-    bi: T,
+    pub bi: T,
 }
 
 impl<T: BrokerInterface> Orchestrator<T> {
-    pub fn new(broker_adapter: T) -> Self {
-        Self { bi: broker_adapter }
-    }
-
     async fn compute(&self, ti: &TaskInputMessage) -> TaskOutputMessage {
         let task_id: Uuid = ti.task_id;
         let task_name: &String = &ti.task_name;
@@ -76,6 +72,7 @@ impl<T: BrokerInterface> Orchestrator<T> {
 
     pub async fn start_running(&mut self) {
         loop {
+            info!("Waiting for task.");
             // Blocking call waiting for the BRPOP
             let ti: TaskInputMessage = self.bi.receive_task().await;
             let task_id: Uuid = ti.task_id;

@@ -22,26 +22,10 @@ pub struct TaskInputMessage {
     pub kwargs: HashMap<String, Value>,
 }
 
-impl TaskInputMessage {
-    pub fn new(task_id: Uuid, task_name: String, kwargs: HashMap<String, Value>) -> Self {
-        Self {
-            task_id,
-            task_name,
-            kwargs,
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct TaskOutputMessage {
     pub task_id: Uuid,
     pub result: Value,
-}
-
-impl TaskOutputMessage {
-    pub fn new(task_id: Uuid, result: Value) -> Self {
-        Self { task_id, result }
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

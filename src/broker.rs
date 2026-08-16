@@ -1,4 +1,4 @@
-// This module implements the consumer broker which interfaces with redis
+// This module implements the broker which interfaces with redis
 use log::info;
 use redis::AsyncTypedCommands;
 use redis::aio::MultiplexedConnection;
@@ -17,15 +17,31 @@ pub enum Value {
 }
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct TaskInputMessage {
-    task_id: Uuid,
-    task_name: String,
-    kwargs: HashMap<String, Value>,
+    pub task_id: Uuid,
+    pub task_name: String,
+    pub kwargs: HashMap<String, Value>,
+}
+
+impl TaskInputMessage {
+    pub fn new(task_id: Uuid, task_name: String, kwargs: HashMap<String, Value>) -> Self {
+        Self {
+            task_id,
+            task_name,
+            kwargs,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct TaskOutputMessage {
-    task_id: Uuid,
-    result: Value,
+    pub task_id: Uuid,
+    pub result: Value,
+}
+
+impl TaskOutputMessage {
+    pub fn new(task_id: Uuid, result: Value) -> Self {
+        Self { task_id, result }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -84,7 +100,7 @@ impl<T: SerialiserInterface> BrokerInterface for RedisAdapter<T> {
                 input
             }
             _ => {
-                panic!(); // Exit any other case
+                panic!("Queue contains invalid message."); // Exit any other case
             }
         }
     }

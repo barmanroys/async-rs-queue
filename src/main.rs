@@ -1,4 +1,5 @@
-mod consumer_broker;
+mod broker;
+mod consumer;
 
 use log::info;
 use redis::Client;

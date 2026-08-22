@@ -1,5 +1,5 @@
 [package]
-name = "async-rs-queue" # Replace - with _ while forming the crate name for internal usage
+name = "async-rs-queue" # Replace hyphen with underscore while forming the crate name for internal usage
 version = "0.1.0"
 edition = "2024"
 

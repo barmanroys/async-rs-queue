@@ -1,3 +1,4 @@
+// This file is in charge of the shared capabilities for both consumer and producer
 use log::info;
 use redis::AsyncCommands;
 use redis::aio::MultiplexedConnection;
@@ -78,7 +79,7 @@ impl<T: SerialiserInterface> RedisAdapter<T> {
 impl<T: SerialiserInterface> BrokerInterface for RedisAdapter<T> {
     // Producer push task
     async fn write_task(&mut self, input: TaskInputMessage) -> () {
-        // Producer task insertion
+        // Left push on the queue
         let task_id: Uuid = input.task_id;
         info!("Inserting {task_id} inputs into the broker.");
         let content: Vec<u8> = self.serialiser.serialise(&BrokerMessage::Input(input));

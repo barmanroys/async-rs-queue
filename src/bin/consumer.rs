@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 async fn add(a: i64, b: i64) -> i64 {
     info!("Adding {a} and {b}");
-    sleep(Duration::from_secs(30)).await; // Emulate a long-running function
+    sleep(Duration::from_secs(15)).await; // Emulate a long-running function
     a + b
 }
 

@@ -1,8 +1,9 @@
 use async_rs_queue::broker::{
-    BrokerInterface, RedisAdapter, SerdeAdapter, TaskInputMessage,
-    TaskOutputMessage, Value,
+    BrokerInterface, RedisAdapter, SerdeAdapter, TaskInputMessage, TaskOutputMessage, Value,
 };
 use log::info;
+use rand::RngExt;
+use rand::rngs::ThreadRng;
 use redis::Client;
 use redis::aio::MultiplexedConnection;
 use std::collections::HashMap;
@@ -37,8 +38,10 @@ async fn main() -> () {
     };
     let task_id: Uuid = Uuid::new_v4();
     let task_name: &str = "add";
-    let a: i64 = 48;
-    let b: i64 = 92;
+    let mut rng: ThreadRng = rand::rng();
+    // Pick random inputs for testing
+    let a: i64 = rng.random_range(100..=1000);
+    let b: i64 = rng.random_range(100..=1000);
     let input_message: TaskInputMessage = TaskInputMessage {
         task_id: task_id.clone(),
         task_name: task_name.into(),
@@ -48,6 +51,7 @@ async fn main() -> () {
         ]),
     };
     bi.write_task(input_message).await;
+
     loop {
         tokio::time::sleep(Duration::from_secs(2)).await;
         info!("Checking for result of task id {task_id}");
@@ -57,7 +61,13 @@ async fn main() -> () {
                 let task_id: Uuid = task_output.task_id;
                 info!("Results read for {task_id}");
                 let result: Value = task_output.result;
-                info!("The result is {:#?}", result);
+                match result {
+                    Value::Integer(computed_result) => {
+                        assert_eq!(a + b, computed_result);
+                        info!("Successfully read result of task id {task_id} as {computed_result}");
+                    }
+                    _ => panic!("Incorrect result {:#?} for task id {task_id}", result),
+                }
                 exit(0);
             }
             None => info!("Result for {task_id} not found, will poll again after a while."),

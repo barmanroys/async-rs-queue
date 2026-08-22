@@ -128,15 +128,21 @@ impl<T: SerialiserInterface> BrokerInterface for RedisAdapter<T> {
     async fn query_result(&mut self, task_id: Uuid) -> Option<TaskOutputMessage> {
         let key: String = self.result_key(&task_id);
         info!("Querying result for {key}");
+        // Gives empty vector if the key is absent
         let content: Vec<u8> = self
             .redis_client
-            .get(key)
+            .get(&key)
             .await
             .expect("Failed to get result.");
-        match self.serialiser.parse(&content) {
-            BrokerMessage::Output(output) => Option::from(output),
-            // This indicates absence of result
-            _ => None,
+        info!("Read Result: {content:?} from {key}");
+        if content.is_empty() {
+            info!("No result for key: {key} available yet.");
+            None
+        } else {
+            match self.serialiser.parse(&content) {
+                BrokerMessage::Output(output) => Some(output),
+                BrokerMessage::Input(_) => None,
+            }
         }
     }
 }

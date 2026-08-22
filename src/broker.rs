@@ -1,6 +1,5 @@
-// This module implements the broker which interfaces with redis
 use log::info;
-use redis::AsyncTypedCommands;
+use redis::AsyncCommands;
 use redis::aio::MultiplexedConnection;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -53,9 +52,12 @@ impl SerialiserInterface for SerdeAdapter {
 }
 
 pub trait BrokerInterface {
-    async fn receive_task(&mut self) -> TaskInputMessage; // Pick up the task via this method
+    async fn write_task(&mut self, input: TaskInputMessage) -> (); // Producer pushes task into the queue
+    async fn receive_task(&mut self) -> TaskInputMessage; // Consumer claims task
 
-    async fn write_result(&mut self, out: TaskOutputMessage) -> (); // Use this to write back the results
+    async fn write_result(&mut self, out: TaskOutputMessage) -> (); // Consumer write back results
+
+    async fn query_result(&mut self, task_id: Uuid) -> Option<TaskOutputMessage>; // Producer queries the result
 }
 
 pub struct RedisAdapter<T: SerialiserInterface> {
@@ -65,14 +67,36 @@ pub struct RedisAdapter<T: SerialiserInterface> {
     pub serialiser: T,
 }
 
+impl<T: SerialiserInterface> RedisAdapter<T> {
+    fn result_key(&self, task_id: &Uuid) -> String {
+        // Follow TaskIQ convention of key formatting
+        info!("Generating key for task {task_id}");
+        format!("{}:{task_id}", self.result_backend)
+    }
+}
+
 impl<T: SerialiserInterface> BrokerInterface for RedisAdapter<T> {
+    // Producer push task
+    async fn write_task(&mut self, input: TaskInputMessage) -> () {
+        // Producer task insertion
+        let task_id: Uuid = input.task_id;
+        info!("Inserting {task_id} inputs into the broker.");
+        let content: Vec<u8> = self.serialiser.serialise(&BrokerMessage::Input(input));
+        info!("Writing task content: {content:?}");
+        let length: usize = AsyncCommands::lpush(&mut self.redis_client, &self.queue_name, content)
+            .await
+            .expect("Failed to insert into redis queue.");
+
+        info!("Finished writing {task_id} to queue, and the new queue size is {length}");
+    }
+    // Consumer claims task
     async fn receive_task(&mut self) -> TaskInputMessage {
         self.redis_client
             .set_response_timeout(Duration::from_hours(5));
         let qn: &str = &self.queue_name;
         info!("Waiting for next task on queue {qn}");
         let results: Option<(String, Vec<u8>)> =
-            redis::AsyncCommands::brpop(&mut self.redis_client, qn, 0.0)
+            AsyncCommands::brpop(&mut self.redis_client, qn, 0.0)
                 .await
                 .expect("Failed to get next task on queue.");
         let tasks: (String, Vec<u8>) = results.unwrap();
@@ -88,16 +112,30 @@ impl<T: SerialiserInterface> BrokerInterface for RedisAdapter<T> {
             }
         }
     }
-
+    // Consumer writes result
     async fn write_result(&mut self, out: TaskOutputMessage) -> () {
         let task_id: Uuid = out.task_id;
         let content: Vec<u8> = self.serialiser.serialise(&BrokerMessage::Output(out));
-        let key: String = format!("{}:{task_id}", self.result_backend);
+        let key: String = self.result_key(&task_id);
         info!("Writing result to: {key}");
-        self.redis_client
-            .set(&key, content)
+        AsyncCommands::set(&mut self.redis_client, &key, content)
             .await
-            .expect("Failed to set result.");
-        info!("Finished writing result to {key}");
+            .expect("Failed to set result.")
+    }
+
+    // Producer reads result
+    async fn query_result(&mut self, task_id: Uuid) -> Option<TaskOutputMessage> {
+        let key: String = self.result_key(&task_id);
+        info!("Querying result for {key}");
+        let content: Vec<u8> = self
+            .redis_client
+            .get(key)
+            .await
+            .expect("Failed to get result.");
+        match self.serialiser.parse(&content) {
+            BrokerMessage::Output(output) => Option::from(output),
+            // This indicates absence of result
+            _ => None,
+        }
     }
 }

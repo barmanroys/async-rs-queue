@@ -1,8 +1,5 @@
-mod broker;
-mod consumer;
-
-use crate::broker::{RedisAdapter, SerdeAdapter};
-use crate::consumer::Orchestrator;
+use async_rs_queue::broker::{RedisAdapter, SerdeAdapter};
+use async_rs_queue::consumer::Orchestrator;
 use log::info;
 use redis::Client;
 use redis::aio::MultiplexedConnection;

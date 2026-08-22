@@ -1,5 +1,5 @@
 [package]
-name = "async-rs-queue"
+name = "async-rs-queue" # Replace - with _ while forming the crate name for internal usage
 version = "0.1.0"
 edition = "2024"
 
@@ -7,8 +7,8 @@ edition = "2024"
 dotenvy = "0.15.7"
 env_logger = "0.11.11"
 log = "0.4.33"
-redis = { version = "1.5.0", features = ["tokio-comp", "connection-manager"] }
+redis = { version = "1.6.0", features = ["tokio-comp", "connection-manager"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 tokio = { version = "1.53.1", features = ["rt", "rt-multi-thread", "macros"] }
-uuid = { version = "1.24.0", features = ["serde", "v4"] }
+uuid = { version = "1.24.1", features = ["serde", "v4"] }
